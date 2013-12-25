@@ -499,6 +499,8 @@ h2(#help-section11). Author contact
 
 * "Plugin on author's site":http://www.yablo.de/article/475/yab_review_rating-a-comment-based-rating-system-for-textpattern
 * "Plugin on GitHub":https://github.com/trenc/yab_review_rating
+* "Plugin on Textpattern forum":http://forum.textpattern.com/viewtopic.php?id=40374
+* "Plugin on textpattern.org":http://textpattern.org/plugins/1285/yab_review_rating
 # --- END PLUGIN HELP ---
 -->
 <?php
