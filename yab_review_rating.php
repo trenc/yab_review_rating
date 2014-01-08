@@ -2,7 +2,7 @@
 
 $plugin['name'] = 'yab_review_rating';
 $plugin['allow_html_help'] = 0;
-$plugin['version'] = '0.1';
+$plugin['version'] = '0.2';
 $plugin['author'] = 'Tommy Schmucker';
 $plugin['author_uri'] = 'http://www.yablo.de/';
 $plugin['description'] = 'A comment based rating system for articles.';
@@ -101,6 +101,94 @@ register_callback('yab_rr_save', 'comment.saved');
 register_callback('yab_rr_check', 'comment.save');
 
 /**
+ * Textpattern tag
+ * Display the rating average for a given article
+ *
+ * @param  array $atts Array of Textpattern tag attributes
+ * @return string
+ */
+function yab_review_rating_average($atts)
+{
+	global $thisarticle;
+
+	extract(
+		lAtts(
+			array(
+				'id'             => '', // article id or empty in article context
+				'exclude'        => null, // exclude ratings from calculations (e.g. 0)
+				'default'        => 'not yet rated', // default text on articles without rating
+				'decimals'       => 1, // precision of the calculation
+				'separator'      => '.', // decimal separator
+				'round_to_half'  => '' // round to first half integer up or down or not at all (up|down|empty)
+			), $atts
+		)
+	);
+
+	$exclude_rating = '';
+	$average        = $default;
+
+	if ($id)
+	{
+		$id = (int) $id;
+		$id = doSlash($id);
+	}
+	else
+	{
+		assert_article();
+		$id = $thisarticle['thisid'];
+	}
+
+	if ($exclude !== null)
+	{
+		$exclude_rating = do_list($exclude);
+		$exclude_rating = join("','", doSlash($exclude_rating));
+		$exclude_rating = "AND yab_rr_rating NOT IN ('$exclude_rating')";
+	}
+
+	$rs = safe_rows(
+		'yab_rr_rating',
+		'txp_discuss',
+		"parentid = $id $exclude_rating"
+	);
+
+	if ($rs)
+	{
+		$count   = sizeof($rs);
+		$sum     = array_map('yab_rr_get_array_column', $rs);
+		$sum     = array_sum($sum);
+		$average = $sum / $count;
+
+		if ($round_to_half)
+		{
+			if ($round_to_half == 'down')
+			{
+				$average = floor($average * 2) / 2;
+			}
+			else
+			{
+				$average = ceil($average * 2) / 2;
+			}
+		}
+
+		$average = number_format($average, $decimals, $separator, '');
+	}
+
+	return $average;
+}
+
+/**
+ * Get the rating column of the safe_rows() array
+ * Is used as array_map function to build a array_sum array
+ *
+ * @param  array $element Array
+ * @return string         yab_rr_rating Column from param array
+ */
+function yab_rr_get_array_column($element)
+{
+	return $element['yab_rr_rating'];
+}
+
+/**
  * Save the rating
  * Adminside Textpattern callback function
  * Fired after discuss is saved
@@ -113,7 +201,7 @@ function yab_rr_discuss_save($event, $step)
 {
 	$discussid = doSlash(assert_int(ps('discussid')));
 	$rating    = doSlash(intval(ps('yab_rr_rating')));
-	
+
 	$rs = safe_update(
 		'txp_discuss',
 		"yab_rr_rating = '$rating'",
@@ -336,7 +424,7 @@ function yab_review_rating_input($atts)
 						.' id="yab-rr-'.$i.'"'
 					.' />';
 				}
-			
+
 			$out = doWrap($radios, '', $break);
 			break;
 		case 'text':
@@ -383,7 +471,6 @@ function yab_rr_install()
 		." ADD yab_rr_rating TINYINT UNSIGNED NOT NULL DEFAULT '0';"
 	);
 }
-
 # --- END PLUGIN CODE ---
 if (0) {
 ?>
@@ -393,7 +480,7 @@ h1. yab_review_rating
 
 p. A comment based rating system for articles.
 
-p. *Version:* 0.1
+p. *Version:* 0.2
 
 h2. Table of contents
 
@@ -401,8 +488,9 @@ h2. Table of contents
 # "Configuration":#help-config03
 # "Tags":#help-section05
 # "Examples":#help-section09
-# "License":#help-section10
-# "Author contact":#help-section11
+# "Changelog":#help-section10
+# "License":#help-section11
+# "Author contact":#help-section12
 
 h2(#help-section02). Plugin requirements
 
@@ -418,7 +506,7 @@ h2(#help-section05). Tags
 
 h3. yab_review_rating
 
-p. Place this in your comment form. It will show the rating of the current comment.
+Place this in your comment form. It will show the rating of the current comment.
 Can only be placed in a @comments@ form.
 
 *char:* a valid string
@@ -427,7 +515,7 @@ If empty (default) the output will be the rating number. If a char (e.g. a aster
 
 h3. yab_review_rating_input
 
-p. The form element for the rating. Should be placed in the @comment_form@ form.
+The form element for the rating. Should be placed in the @comment_form@ form.
 
 *type:* input type (text, select, radio, number, range)
 Default: text
@@ -448,6 +536,34 @@ Breakpoints für radio intputs. Can be empty or @br@.
 *default:* integer
 Default: __not set__
 Preselected rating value (Could be any number between your min and max values).
+
+h3. yab_review_rating_average
+
+Display the average rating for a given article.
+
+*id:* integer (article id)
+Default: __no set__
+The ID of an article. If not set it must be placed in an article form (article context).
+
+*exclude:* string (a comma separated list of ratings)
+Default: __null__
+Exclude these ratings from the average rating calculation. So you can exclude '0' values for not rated articles, due 0 is the default value. Depending on your rating system setting.
+
+*default:* string (Text)
+Default: 'not yet rated'
+The default text on articles without a rating.
+
+*decimals:* integer
+Default: 1
+Define the decimal precision of the calculation and the output.
+
+*separator:* string (string|empty)
+Default: . (perdiod)
+Choose your decimal separator. Can be empty (separator will be omitted) for HTML class friendly output.
+
+*round_to_half*: string (up|down|)
+Default: __no net__
+Round to first half integer up or down or not at all. If not set the last decimal is automatically rounded up.
 
 h2(#help-section09). Examples
 
@@ -487,19 +603,39 @@ bc.. <h3 class="commenthead"><txp:comment_permlink>#</txp:comment_permlink> - <t
 <span class="rating rating-value-<txp:yab_review_rating />">Rating:</span>
 <txp:comment_message />
 
-p. Will produce a the a comment/review with the name, text and time of the comment and the rating as HTML/CSS class..
+p. Will produce a the a comment/review with the name, text and time of the comment and the rating as HTML/CSS class.
 
-h2(#help-section10). Licence
+h3. Example 4
+
+Example @yab_review_rating_average@.
+
+bc.. <txp:yab_review_rating_average id="12" exclude="0" decimals="2" separator="" round_to_half="down" />
+
+p. Say the article with the ID 12 do have 3 reviews: One with a rating of 0 and two with a rating of 4 each. The output will exclude the 0 from the calculation. So only the two 4-ratings will be used 4+4 = 8÷2 = 4. Average rating is 4. But we have decimals precision of 2, so it will be 4.00. No rounding required but the separator will be ommitted: 400 will be displayed.
+exclude="0" decimals="2" separator="" round_to_half="down" />
+
+bc.. <txp:yab_review_rating_average id="12" decimals="2" separator="" round_to_half="down" />
+
+p. Here we calculate an average from all reviews/ratings. Like above we have two 4 and 0-rating. So the rating is 0+4+4 = 8÷3 = 2.6666666667. Now we round to half down: 2.500000000 and use the decimal precision of 2: 2.50 and ommit the separator: 250.
+
+h2(#help-section10). Changelog
+
+* v0.1: 2013-12-24
+** initial release
+* v0.2: 2014-01-08
+** new: added a the tag @<txp:yab_review_rating_average />@
+
+h2(#help-section11). Licence
 
 This plugin is released under the GNU General Public License Version 2 and above
 * Version 2: "http://www.gnu.org/licenses/gpl-2.0.html":http://www.gnu.org/licenses/gpl-2.0.html
 * Version 3: "http://www.gnu.org/licenses/gpl-3.0.html":http://www.gnu.org/licenses/gpl-3.0.html
 
-h2(#help-section11). Author contact
+h2(#help-section12). Author contact
 
 * "Plugin on author's site":http://www.yablo.de/article/475/yab_review_rating-a-comment-based-rating-system-for-textpattern
 * "Plugin on GitHub":https://github.com/trenc/yab_review_rating
-* "Plugin on Textpattern forum":http://forum.textpattern.com/viewtopic.php?id=40374
+* "Plugin on textpattern forum":http://forum.textpattern.com/viewtopic.php?id=40374
 * "Plugin on textpattern.org":http://textpattern.org/plugins/1285/yab_review_rating
 # --- END PLUGIN HELP ---
 -->
