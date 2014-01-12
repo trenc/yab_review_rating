@@ -2,12 +2,12 @@
 
 $plugin['name'] = 'yab_review_rating';
 $plugin['allow_html_help'] = 0;
-$plugin['version'] = '0.2';
+$plugin['version'] = '0.3';
 $plugin['author'] = 'Tommy Schmucker';
 $plugin['author_uri'] = 'http://www.yablo.de/';
 $plugin['description'] = 'A comment based rating system for articles.';
 $plugin['order'] = '5';
-$plugin['type'] = '1'; // public and admin
+$plugin['type'] = '1';
 
 if (!defined('PLUGIN_HAS_PREFS')) define('PLUGIN_HAS_PREFS', 0x0001);
 if (!defined('PLUGIN_LIFECYCLE_NOTIFY')) define('PLUGIN_LIFECYCLE_NOTIFY', 0x0002);
@@ -251,7 +251,6 @@ EOF;
 /**
  * Textpattern tag
  * Display the rating
- * Can only be used in the comments form
  *
  * @param  array $atts Array of Textpattern tag attributes
  * @return string
@@ -260,24 +259,51 @@ function yab_review_rating($atts)
 {
 	global $thiscomment;
 
-	assert_comment();
-
 	extract(
 		lAtts(
 			array(
+				'id'  => '', // id of the comment
 				'char' => '' // type of input, if empty number is displayed
 			), $atts
 		)
 	);
 
-	// is preview or saved comment
-	if (isset($thiscomment['yab_rr_rating']))
+	$min = yab_rr_config('min');
+
+	// commentid is given, serve before all othe
+	if ($id)
 	{
-		$rating = $thiscomment['yab_rr_rating'];
+		$discussid = (int) $id;
+		$rating = safe_field('yab_rr_rating', 'txp_discuss', "discussid = $discussid");
+
+		if (!$rating)
+		{
+			$rating = $min;
+		}
 	}
 	else
 	{
-		$rating = intval(ps('yab_rr_value'));
+		// normal comment list
+		if (isset($thiscomment['yab_rr_rating']))
+		{
+			$rating = $thiscomment['yab_rr_rating'];
+		}
+		// recent comments
+		elseif (isset($thiscomment['discussid']))
+		{
+			$discussid = $thiscomment['discussid'];
+			$rating    = safe_field('yab_rr_rating', 'txp_discuss', "discussid = $discussid");
+
+			if (!$rating)
+			{
+				$rating = $min;
+			}
+		}
+		// comment preview
+		else
+		{
+			$rating = intval(ps('yab_rr_value'));
+		}
 	}
 
 	if ($char)
@@ -480,7 +506,7 @@ h1. yab_review_rating
 
 p. A comment based rating system for articles.
 
-p. *Version:* 0.2
+p. *Version:* 0.3
 
 h2. Table of contents
 
@@ -507,7 +533,11 @@ h2(#help-section05). Tags
 h3. yab_review_rating
 
 Place this in your comment form. It will show the rating of the current comment.
-Can only be placed in a @comments@ form.
+Can be used elsewhere. If not used in comment context as comments_form or recent_comments you have to fill the id attribute.
+
+*id:* integer (comment id)
+Default: __no set__
+Show the rating of a comment with this ID. Useful in a non comment context.
 
 *char:* a valid string
 Default: __no set__
@@ -624,6 +654,9 @@ h2(#help-section10). Changelog
 ** initial release
 * v0.2: 2014-01-08
 ** new: added a the tag @<txp:yab_review_rating_average />@
+* v0.3: 2014-01-12
+** new: added the id attribute to @<txp:yab_review_rating />@
+** modify: @<txp:yab_review_rating />@ can now be used in @<txp:recent_comments />@
 
 h2(#help-section11). Licence
 

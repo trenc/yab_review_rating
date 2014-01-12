@@ -2,7 +2,7 @@ h1. yab_review_rating
 
 p. A comment based rating system for articles.
 
-p. *Version:* 0.2
+p. *Version:* 0.3
 
 h2. Table of contents
 
@@ -29,7 +29,11 @@ h2(#help-section05). Tags
 h3. yab_review_rating
 
 Place this in your comment form. It will show the rating of the current comment.
-Can only be placed in a @comments@ form.
+Can be used elsewhere. If not used in comment context as comments_form or recent_comments you have to fill the id attribute.
+
+*id:* integer (comment id)
+Default: __no set__
+Show the rating of a comment with this ID. Useful in a non comment context.
 
 *char:* a valid string
 Default: __no set__
@@ -146,6 +150,9 @@ h2(#help-section10). Changelog
 ** initial release
 * v0.2: 2014-01-08
 ** new: added a the tag @<txp:yab_review_rating_average />@
+* v0.3: 2014-01-12
+** new: added the id attribute to @<txp:yab_review_rating />@
+** modify: @<txp:yab_review_rating />@ can now be used in @<txp:recent_comments />@
 
 h2(#help-section11). Licence
 
