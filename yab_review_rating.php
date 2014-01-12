@@ -268,18 +268,11 @@ function yab_review_rating($atts)
 		)
 	);
 
-	$min = yab_rr_config('min');
-
 	// commentid is given, serve before all othe
 	if ($id)
 	{
 		$discussid = (int) $id;
 		$rating = safe_field('yab_rr_rating', 'txp_discuss', "discussid = $discussid");
-
-		if (!$rating)
-		{
-			$rating = $min;
-		}
 	}
 	else
 	{
@@ -293,11 +286,6 @@ function yab_review_rating($atts)
 		{
 			$discussid = $thiscomment['discussid'];
 			$rating    = safe_field('yab_rr_rating', 'txp_discuss', "discussid = $discussid");
-
-			if (!$rating)
-			{
-				$rating = $min;
-			}
 		}
 		// comment preview
 		else
