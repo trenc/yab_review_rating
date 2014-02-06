@@ -2,7 +2,7 @@
 
 $plugin['name'] = 'yab_review_rating';
 $plugin['allow_html_help'] = 0;
-$plugin['version'] = '0.3';
+$plugin['version'] = '0.4';
 $plugin['author'] = 'Tommy Schmucker';
 $plugin['author_uri'] = 'http://www.yablo.de/';
 $plugin['description'] = 'A comment based rating system for articles.';
@@ -114,8 +114,9 @@ function yab_review_rating_average($atts)
 	extract(
 		lAtts(
 			array(
-				'id'             => '', // article id or empty in article context
+				'id'             => '', // article ids (comma separated) or empty in article context
 				'exclude'        => null, // exclude ratings from calculations (e.g. 0)
+				'only_visible'   => 1, // show all or only visible comments/reviews
 				'default'        => 'not yet rated', // default text on articles without rating
 				'decimals'       => 1, // precision of the calculation
 				'separator'      => '.', // decimal separator
@@ -129,13 +130,20 @@ function yab_review_rating_average($atts)
 
 	if ($id)
 	{
-		$id = (int) $id;
-		$id = doSlash($id);
+		$id = do_list($id);
+		$id = join("','", doSlash($id));
 	}
 	else
 	{
 		assert_article();
 		$id = $thisarticle['thisid'];
+	}
+	$parentid = "parentid IN ('$id')";
+
+	$visible = '';
+	if ($only_visible)
+	{
+		$visible = "AND visible = 1";
 	}
 
 	if ($exclude !== null)
@@ -148,7 +156,7 @@ function yab_review_rating_average($atts)
 	$rs = safe_rows(
 		'yab_rr_rating',
 		'txp_discuss',
-		"parentid = $id $exclude_rating"
+		"$parentid $visible $exclude_rating"
 	);
 
 	if ($rs)
@@ -372,6 +380,7 @@ function yab_review_rating_input($atts)
 				'html_id' => '', // HTML id to apply the item attribute value
 				'class'   => 'yab-rr-review', // HTML class to apply the item attribute value
 				'break'   => 'br', // br or empty
+				'reverse' => 0, // reverse order for radio and select types
 				'default' => '' // preselected rating value
 			), $atts
 		)
@@ -407,7 +416,7 @@ function yab_review_rating_input($atts)
 	switch ($type)
 	{
 		case 'select':
-			$options = '';
+			$options = array();
 			for ($i = $min; $i <= $max; $i++)
 			{
 				$selected = '';
@@ -415,30 +424,41 @@ function yab_review_rating_input($atts)
 				{
 					$selected = ' selected="selected"';
 				}
-				$options .= '<option value="'.$i.'"'.$selected.'>'.$i.'</option>';
+				$options[] = '<option value="'.$i.'"'.$selected.'>'.$i.'</option>';
 			}
-			$out = '<select name="yab_rr_value"'
-				.$selector_attributes.'>'
-				.$options
-			.'</select>';
+			if ($reverse)
+			{
+				$options = array_reverse($options);
+			}
+				$out = doWrap(
+					$options,
+					'select',
+					'',
+					'',
+					'',
+					' name="yab_rr_value"'.$selector_attributes
+				);
 			break;
 		case 'radio':
 			$radios = array();
 			for ($i = $min; $i <= $max; $i++)
 			{
-					$checked = '';
-					if ($i == $default)
-					{
-						$checked = ' checked="checked"';
-					}
-					$radios[] = '<label for="yab-rr-'.$i.'">'.$i.'</label>'
-						.'<input  name="yab_rr_value" type="'.$type.'"'
-						.$checked
-						.' value="'.$i.'"'
-						.' id="yab-rr-'.$i.'"'
-					.' />';
+				$checked = '';
+				if ($i == $default)
+				{
+					$checked = ' checked="checked"';
 				}
-
+				$radios[] = '<label for="yab-rr-'.$i.'">'.$i.'</label>'
+					.'<input  name="yab_rr_value" type="'.$type.'"'
+					.$checked
+					.' value="'.$i.'"'
+					.' id="yab-rr-'.$i.'"'
+				.' />';
+			}
+			if ($reverse)
+			{
+				$radios = array_reverse($radios);
+			}
 			$out = doWrap($radios, '', $break);
 			break;
 		case 'text':
@@ -490,11 +510,11 @@ if (0) {
 ?>
 <!--
 # --- BEGIN PLUGIN HELP ---
-h1. yab_review_rating
+1h. yab_review_rating
 
 p. A comment based rating system for articles.
 
-p. *Version:* 0.3
+p. *Version:* 0.4
 
 h2. Table of contents
 
@@ -547,7 +567,11 @@ The HTML id attribute applied to the element.
 Default: __not set__
 The HTML/CSS class attribute applied to the element.
 
-*break:* breakpoint (br, __empty__)
+*reverse:* integer|string (a non-null value)
+Default: 0
+If reverse is given the output of the select or radio type is displayed in reverse order.
+
+*break:* breakpoint (br|__empty__)
 Default: 'br'
 Breakpoints für radio intputs. Can be empty or @br@.
 
@@ -559,9 +583,13 @@ h3. yab_review_rating_average
 
 Display the average rating for a given article.
 
-*id:* integer (article id)
+*id:* string (comma-separated article ids)
 Default: __no set__
-The ID of an article. If not set it must be placed in an article form (article context).
+The IDs of articles. If not set it must be placed in an article form (article context).
+
+*only_visible:* integer|bool (1|0)
+Default: 1
+If set to 0 all comments (spam and moderated comments too) will be calculated.
 
 *exclude:* string (a comma separated list of ratings)
 Default: __null__
@@ -595,13 +623,13 @@ bc.. <txp:comments_error wraptag="ul" break="li" />
 		<p><label for="email">Mail (not required, not visible):</label><br />
 			<txp:comment_email_input /></p>
 		<p><label for="yab-rr-rating">Rating</label><br />
-			<txp:yab_review_rating_input html_id="yab-rr-rating" type="select" default="3" /></p>
+			<txp:yab_review_rating_input html_id="yab-rr-rating" type="select" reverse="1" default="3" /></p>
 		<p><label for="message">Review:</label><br />
 			<txp:comment_message_input /></p>
 		<p class="submit"><txp:comments_help /><txp:comment_preview /><txp:comment_submit /></p>
 </div>
 
-p. Will produce a comment form for article reviews (e.g. with yab_shop) select dropdown menu and the preselected rating value 3.
+p. Will produce a comment form for article reviews (e.g. with yab_shop). The select dropdown menu for the rating is in reversed order (highest top) and the preselected rating value is 3.
 
 h3. Example 2
 
@@ -645,6 +673,10 @@ h2(#help-section10). Changelog
 * v0.3: 2014-01-12
 ** new: added the id attribute to @<txp:yab_review_rating />@
 ** modify: @<txp:yab_review_rating />@ can now be used in @<txp:recent_comments />@
+* v0.4: 2014-01-16
+** new: added reverse attribute to @<txp:yab_review_rating_input />@
+** new: added only_visible attribute to @<txp:yab_review_rating_average />@
+** modify: id attribute of @<txp:yab_review_rating_average />@ can now contain list of article ids
 
 h2(#help-section11). Licence
 
