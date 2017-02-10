@@ -2,7 +2,7 @@
 
 $plugin['name'] = 'yab_review_rating';
 $plugin['allow_html_help'] = 0;
-$plugin['version'] = '0.4';
+$plugin['version'] = '0.5';
 $plugin['author'] = 'Tommy Schmucker';
 $plugin['author_uri'] = 'http://www.yablo.de/';
 $plugin['description'] = 'A comment based rating system for articles.';
@@ -59,6 +59,15 @@ if (!defined('txpinterface'))
  * Version 2: http://www.gnu.org/licenses/gpl-2.0.html
  * Version 3: http://www.gnu.org/licenses/gpl-3.0.html
  */
+
+if (class_exists('\Textpattern\Tag\Registry'))
+{
+	Txp::get('\Textpattern\Tag\Registry')
+		->register('yab_review_rating')
+		->register('yab_review_rating_input')
+		->register('yab_review_rating_average');
+}
+
 
 /**
  * Config function holder to avoid some globals
@@ -510,7 +519,7 @@ if (0) {
 ?>
 <!--
 # --- BEGIN PLUGIN HELP ---
-1h. yab_review_rating
+h1. yab_review_rating
 
 p. A comment based rating system for articles.
 
@@ -677,6 +686,8 @@ h2(#help-section10). Changelog
 ** new: added reverse attribute to @<txp:yab_review_rating_input />@
 ** new: added only_visible attribute to @<txp:yab_review_rating_average />@
 ** modify: id attribute of @<txp:yab_review_rating_average />@ can now contain list of article ids
+* v0.5: 2017-02-10
+** TXP 4.6-ready
 
 h2(#help-section11). Licence
 
