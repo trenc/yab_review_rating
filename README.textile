@@ -2,7 +2,7 @@ h1. yab_review_rating
 
 p. A comment based rating system for articles.
 
-p. *Version:* 0.5
+p. *Version:* 0.6
 
 h2. Table of contents
 
@@ -167,6 +167,8 @@ h2(#help-section10). Changelog
 ** modify: id attribute of @<txp:yab_review_rating_average />@ can now contain list of article ids
 * v0.5: 2017-02-10
 ** TXP 4.6-ready
+* v0.6: 2017-03-09
+** bugfix: handle comment UI correctly, prevent rating resets to 0 if comment status is changed
 
 h2(#help-section11). Licence
 
