@@ -2,7 +2,7 @@
 
 $plugin['name'] = 'yab_review_rating';
 $plugin['allow_html_help'] = 0;
-$plugin['version'] = '0.5';
+$plugin['version'] = '0.6';
 $plugin['author'] = 'Tommy Schmucker';
 $plugin['author_uri'] = 'http://www.yablo.de/';
 $plugin['description'] = 'A comment based rating system for articles.';
@@ -256,8 +256,8 @@ function yab_rr_discuss_ui()
 	$js        = <<<EOF
 <script>
 (function() {
-	var yab_rr_js = '<p class="yab-edit-rating"><span class="edit-label"><label for="yab_rr_rating">$label</label></span><span class="edit-value"><input type="text" value="$rating" name="yab_rr_rating" size="32" id="yab_rr_rating"></span></p>';
-	$('.edit-name', '#discuss_edit_form').after(yab_rr_js);
+	var yab_rr_js = '<div class="txp-form-field edit-comment-yab-rating"><div class="txp-form-field-label"><label for="yab_rr_rating">$label</label></div><div class="txp-form-field-value"><input type="text" value="$rating" name="yab_rr_rating" size="32" id="yab_rr_rating"></div></div>';
+	$('.edit-comment-name', '#discuss_edit_form').after(yab_rr_js);
 })();
 </script>
 EOF;
@@ -523,7 +523,7 @@ h1. yab_review_rating
 
 p. A comment based rating system for articles.
 
-p. *Version:* 0.4
+p. *Version:* 0.6
 
 h2. Table of contents
 
